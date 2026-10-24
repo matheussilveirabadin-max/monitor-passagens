@@ -240,6 +240,15 @@ def pause(cfg: dict) -> None:
     time.sleep(random.uniform(*cfg["busca"]["pausa_segundos"]))
 
 
+def fetch_retry(ticket: Ticket, cfg: dict) -> tuple[int | None, dict]:
+    """Como fetch, com uma segunda tentativa: às vezes o Google devolve a página incompleta."""
+    try:
+        return fetch(ticket, cfg)
+    except Exception:
+        pause(cfg)
+        return fetch(ticket, cfg)
+
+
 def refresh(db: sqlite3.Connection, cfg: dict, tickets: list[Ticket], limit: int) -> tuple[int, int]:
     """Busca até `limit` bilhetes: primeiro os nunca buscados, depois os mais antigos.
 
@@ -252,7 +261,7 @@ def refresh(db: sqlite3.Connection, cfg: dict, tickets: list[Ticket], limit: int
         if i > 1:
             pause(cfg)
         try:
-            price, details = fetch(t, cfg)
+            price, details = fetch_retry(t, cfg)
             falhas = 0
             sucessos += 1
         except Exception as e:  # mudança no Google, bloqueio, rede...
@@ -306,7 +315,7 @@ def confirm(db: sqlite3.Connection, cfg: dict, candidatos: list[tuple[int, Itine
             continue
         pause(cfg)
         try:
-            save_quote(db, t.key, *fetch(t, cfg))
+            save_quote(db, t.key, *fetch_retry(t, cfg))
         except Exception as e:
             log(f"Não consegui confirmar {t.label()}: {type(e).__name__}: {e}")
             falharam.add(t.key)
