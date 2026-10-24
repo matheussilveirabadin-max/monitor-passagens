@@ -1,0 +1,106 @@
+# .github/workflows/monitor.yml
+#
+# GitHub Actions — Monitor de passagens GRU → EUA → Tóquio
+# ─────────────────────────────────────────────────────────────
+# Roda o monitor a cada 2 horas. Cada execução faz um lote de buscas
+# no Google Flights e guarda os preços no cache do Actions, para a
+# próxima execução continuar de onde parou.
+# Custo: GRATUITO (repo público = minutos ilimitados)
+#
+# Setup:
+#   1. Settings > Secrets and variables > Actions > Secrets:
+#      EMAIL_FROM  → seu_email@gmail.com
+#      EMAIL_PASS  → App Password do Gmail (não a senha normal!)
+#      EMAIL_TO    → email de destino
+#   2. (Opcional) Variables, que substituem o config.toml:
+#      PRECO_MAXIMO  → 6000
+#      SAIDA_DE      → 2027-03-15
+#      SAIDA_ATE     → 2027-03-21
+#      DIAS_NO_JAPAO → 10,12,14
+#      PARADAS       → LAX,SFO,SEA,HNL,DFW,IAH,ORD,JFK
+# ─────────────────────────────────────────────────────────────
+
+name: Monitor de passagens
+
+on:
+  schedule:
+    # A cada 2 horas, no minuto 17 (fora do pico de agendamentos do GitHub)
+    - cron: '17 */2 * * *'
+
+  # Permite rodar manualmente pela interface do GitHub
+  workflow_dispatch:
+    inputs:
+      max_consultas:
+        description: 'Buscas nesta execução (vazio = valor do config.toml)'
+        required: false
+      sem_email:
+        description: 'Só mostrar o resultado, sem enviar e-mail'
+        type: boolean
+        default: false
+
+# Uma execução por vez, para não sobrescrever o histórico de preços
+concurrency:
+  group: monitor-passagens
+  cancel-in-progress: false
+
+permissions:
+  contents: write  # só para o commit vazio que mantém o agendamento ativo
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Restaurar histórico de preços
+        uses: actions/cache/restore@v4
+        with:
+          path: dados
+          key: precos-${{ github.run_id }}
+          restore-keys: precos-
+
+      - name: Rodar monitor
+        env:
+          EMAIL_FROM:    ${{ secrets.EMAIL_FROM }}
+          EMAIL_PASS:    ${{ secrets.EMAIL_PASS }}
+          EMAIL_TO:      ${{ secrets.EMAIL_TO }}
+          PRECO_MAXIMO:  ${{ vars.PRECO_MAXIMO }}
+          SAIDA_DE:      ${{ vars.SAIDA_DE }}
+          SAIDA_ATE:     ${{ vars.SAIDA_ATE }}
+          DIAS_NO_JAPAO: ${{ vars.DIAS_NO_JAPAO }}
+          PARADAS:       ${{ vars.PARADAS }}
+          MAX_CONSULTAS: ${{ inputs.max_consultas }}
+          SEM_EMAIL:     ${{ inputs.sem_email }}
+        run: |
+          args=()
+          if [ -n "$MAX_CONSULTAS" ]; then args+=(--max-consultas "$MAX_CONSULTAS"); fi
+          if [ "$SEM_EMAIL" = "true" ]; then args+=(--sem-email); fi
+          uv run python monitor.py "${args[@]}"
+
+      - name: Salvar histórico de preços
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: dados
+          key: precos-${{ github.run_id }}
+
+      - name: Manter o agendamento ativo
+        # O GitHub desliga workflows agendados de repositórios públicos após 60 dias
+        # sem commits. Se o último commit tiver mais de 45 dias, faz um commit vazio.
+        if: github.event_name == 'schedule'
+        run: |
+          ultimo=$(git log -1 --format=%ct)
+          if [ $(( $(date +%s) - ultimo )) -gt $(( 45 * 86400 )) ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898732+github-actions[bot]@users.noreply.github.com"
+            git commit --allow-empty -m "Mantém o agendamento ativo"
+            git push
+          fi

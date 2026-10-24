@@ -1,0 +1,33 @@
+# Monitor de passagens: GRU → parada nos EUA → Tóquio → GRU
+# Altere à vontade; o monitor relê este arquivo a cada execução.
+# No GitHub, as Variables PRECO_MAXIMO, SAIDA_DE, SAIDA_ATE, DIAS_NO_JAPAO e PARADAS,
+# se definidas, têm prioridade sobre os valores abaixo.
+
+[viagem]
+origem = "GRU"
+destino = "TYO"               # TYO = Haneda + Narita
+saida_de = 2027-03-15         # primeira data de saída de Guarulhos
+saida_ate = 2027-03-21        # última data de saída de Guarulhos
+dias_parada = [2]             # dias inteiros na cidade dos EUA (o voo de GRU chega no dia seguinte)
+dias_no_japao = [10, 12, 14]  # dias entre o voo para Tóquio e o voo de volta (cada valor = outra data de volta)
+adultos = 1
+max_conexoes_por_trecho = 2   # conexões dentro de cada voo (0 = só voo direto)
+
+[paradas]
+# Cidades dos EUA aceitas para a parada, em ordem de preferência.
+# HNL (Honolulu) também é EUA e costuma ter voos baratos para o Japão.
+cidades = ["LAX", "SFO", "SEA", "HNL", "DFW", "IAH", "ORD", "JFK"]
+
+[alerta]
+preco_maximo = 6000           # R$, total da viagem completa para todos os adultos
+melhoria_minima = 150         # reenvia alerta da mesma combinação só se cair pelo menos isso
+max_opcoes_no_email = 5
+
+[busca]
+consultas_por_execucao = 50   # buscas no Google Flights por execução (o resto fica para a próxima)
+pausa_segundos = [3, 7]       # pausa aleatória entre buscas, para não ser bloqueado
+validade_horas = 48           # preço mais antigo que isso não entra nas combinações
+ocultar_autoconexao = false   # true = esconde voos que o próprio Google monta com bilhetes separados
+moeda = "BRL"
+idioma = "pt-BR"
+pais = "BR"                   # país de compra; sem isso o GitHub buscaria como se fosse dos EUA

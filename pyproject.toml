@@ -1,0 +1,14 @@
+[project]
+name = "monitor-passagens"
+version = "0.1.0"
+description = "Monitor de passagens GRU → parada nos EUA → Tóquio, com alerta por e-mail"
+requires-python = ">=3.12"
+dependencies = [
+    "apprise>=2.0.1",
+    "fast-flights>=3.1.0",
+    "primp>=2.0.1",
+    "typing-extensions>=4.16.0",
+]
+
+[tool.uv]
+package = false
