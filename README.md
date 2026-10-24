@@ -71,8 +71,9 @@ Edite o [`config.toml`](config.toml) ou, sem mexer no código, crie **Variables*
 
 ### 4. Testar
 
-Em **Actions → Monitor de passagens → Run workflow** (dá para marcar "sem e-mail" e
-escolher quantas buscas fazer).
+Em **Actions → Monitor de passagens → Run workflow**:
+- marque **"Só enviar um e-mail de teste"** para conferir os Secrets;
+- ou rode uma busca normal, escolhendo quantas buscas fazer e se manda e-mail.
 
 ## Rodar no seu computador
 

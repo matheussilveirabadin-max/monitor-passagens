@@ -37,6 +37,10 @@ on:
         description: 'Só mostrar o resultado, sem enviar e-mail'
         type: boolean
         default: false
+      testar_email:
+        description: 'Só enviar um e-mail de teste (para conferir os Secrets)'
+        type: boolean
+        default: false
 
 # Uma execução por vez, para não sobrescrever o histórico de preços
 concurrency:
@@ -79,10 +83,12 @@ jobs:
           PARADAS:       ${{ vars.PARADAS }}
           MAX_CONSULTAS: ${{ inputs.max_consultas }}
           SEM_EMAIL:     ${{ inputs.sem_email }}
+          TESTAR_EMAIL:  ${{ inputs.testar_email }}
         run: |
           args=()
           if [ -n "$MAX_CONSULTAS" ]; then args+=(--max-consultas "$MAX_CONSULTAS"); fi
           if [ "$SEM_EMAIL" = "true" ]; then args+=(--sem-email); fi
+          if [ "$TESTAR_EMAIL" = "true" ]; then args=(--testar-email); fi
           uv run python monitor.py "${args[@]}"
 
       - name: Salvar histórico de preços
